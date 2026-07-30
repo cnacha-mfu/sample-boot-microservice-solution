@@ -34,7 +34,40 @@
             2.5. Change one and you must change the other.
         -->
         <spring-cloud.version>2020.0.3</spring-cloud.version>
+        <!-- Same version as the 3-tier sample, so the generated code looks the same. -->
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
     </properties>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!--
+                    MapStruct writes the mapper implementations while the code
+                    compiles, so it is an annotation processor and not an
+                    ordinary dependency. Copied from the 3-tier sample on
+                    purpose: the students met it there, and it should not look
+                    new here.
+                -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <release>${java.version}</release>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                        <compilerArgs>
+                            <compilerArg>-Amapstruct.defaultComponentModel=spring</compilerArg>
+                        </compilerArgs>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
     <dependencyManagement>
         <dependencies>

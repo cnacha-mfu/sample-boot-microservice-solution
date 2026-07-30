@@ -49,6 +49,13 @@ public class TransactionController {
     private BookClient bookClient;
 
     /**
+     * The Assembler, exactly as in the 3-tier sample. It fills in everything this
+     * service already knows; bookClient above fetches the one field it does not.
+     */
+    @Autowired
+    private TransactionMapper transactionMapper;
+
+    /**
      * POST /api/transactions - record a borrow or a return.
      */
     @PostMapping("/transactions")
@@ -86,9 +93,13 @@ public class TransactionController {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
 
-        Transaction saved = transactionRepository.save(toEntity(dto));
+        Transaction transaction = transactionMapper.toEntity(dto);
+        // The mapper ignores the date on purpose. When a borrow happened is ours
+        // to decide, not the caller's.
+        transaction.setTransactionDate(LocalDate.now());
+        Transaction saved = transactionRepository.save(transaction);
 
-        TransactionDTO result = toDto(saved);
+        TransactionDTO result = transactionMapper.toDto(saved);
         // These two fields are not in our database. They came back from the other
         // service, which is the whole reason we called it.
         result.setBookTitle(book.getTitle());
@@ -100,33 +111,46 @@ public class TransactionController {
     /**
      * GET /api/transactions - list what we have recorded.
      * <p>
-     * This one needs no help from anybody: every field it returns is ours. So
-     * there is no bookTitle here - compare it with the answer to the POST.
+     * Our database holds a bookId and nothing else about the book, so the title
+     * has to be asked for. One row, one call.
+     * <p>
+     * SAY THIS OUT LOUD: ten transactions means ten HTTP requests. In the 3-tier
+     * sample the database did this with a join, once. This is the same N+1
+     * problem you already know, except every "+1" is now a network request that
+     * can be slow or fail.
+     * <p>
+     * It is left this way because it is honest and it is easy to read. The fixes
+     * - ask book-service for many books at once, or keep a copy of the title
+     * here - are what the next lesson is for.
      */
     @GetMapping("/transactions")
     public ResponseEntity<List<TransactionDTO>> list() {
         List<TransactionDTO> result = new ArrayList<>();
         for (Transaction transaction : transactionRepository.findAll()) {
-            result.add(toDto(transaction));
+
+            TransactionDTO dto = transactionMapper.toDto(transaction);
+            try {
+                BookDTO book = bookClient.getBook(transaction.getBookId());
+                dto.setBookTitle(book.getTitle());
+                dto.setServedBy(book.getServedBy());
+
+            } catch (Exception e) {
+                /*
+                 * One unreachable book must not empty the whole list.
+                 *
+                 * The POST answers 503 when book-service is down, because a
+                 * borrow that was not checked is worthless. A list is not: the
+                 * transactions are still true, we just cannot name the books. So
+                 * we return what we have and leave bookTitle null.
+                 *
+                 * Same failure, different answer, because the two requests are
+                 * worth different things. That judgement is the interesting part.
+                 */
+                LOGGER.warn("no title for book {}: {}", transaction.getBookId(), e.getMessage());
+            }
+            result.add(dto);
         }
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    private TransactionDTO toDto(Transaction transaction) {
-        TransactionDTO dto = new TransactionDTO();
-        dto.setId(transaction.getId());
-        dto.setType(transaction.getType());
-        dto.setBookId(transaction.getBookId());
-        dto.setBorrowerName(transaction.getBorrowerName());
-        return dto;
-    }
-
-    private Transaction toEntity(TransactionDTO dto) {
-        Transaction transaction = new Transaction();
-        transaction.setType(dto.getType());
-        transaction.setBookId(dto.getBookId());
-        transaction.setBorrowerName(dto.getBorrowerName());
-        transaction.setTransactionDate(LocalDate.now());
-        return transaction;
-    }
 }

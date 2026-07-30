@@ -1,9 +1,11 @@
 package th.mfu.transaction;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -132,6 +134,43 @@ public class TransactionServiceTests {
                 // library-book-service
                 .andExpect(jsonPath("$.bookTitle").value("1984"))
                 .andExpect(jsonPath("$.servedBy").value(8090));
+    }
+
+    @Test
+    public void listingAsksTheOtherServiceForEachTitle() throws Exception {
+        // Step 4. Our database has the bookId only, so the title has to come from
+        // library-book-service - one call for every row.
+        when(bookClient.getBook(any())).thenReturn(aBook());
+
+        mockMvc.perform(post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON).content(BORROW_JSON))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/transactions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].bookTitle").value("1984"))
+                .andExpect(jsonPath("$[0].servedBy").value(8090));
+    }
+
+    @Test
+    public void listingSurvivesBookServiceBeingDown() throws Exception {
+        // Step 5. The POST answers 503 when book-service is down, because a
+        // borrow that was never checked is worthless. A list is different: the
+        // transactions are still true, we just cannot name the books. So it comes
+        // back 200, with the rows present and the titles missing.
+        when(bookClient.getBook(any())).thenReturn(aBook());
+
+        mockMvc.perform(post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON).content(BORROW_JSON))
+                .andExpect(status().isCreated());
+
+        when(bookClient.getBook(any())).thenThrow(new RuntimeException("connection refused"));
+
+        mockMvc.perform(get("/api/transactions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").exists())
+                .andExpect(jsonPath("$[0].bookId").value(10002))
+                .andExpect(jsonPath("$[0].bookTitle").value(nullValue()));
     }
 
     @Test

@@ -35,6 +35,13 @@
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
 
+        <!-- MapStruct: the Assembler that copies between entity and DTO -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
+
         <!-- Feign: write an interface, get an HTTP client -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

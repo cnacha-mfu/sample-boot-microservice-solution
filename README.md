@@ -41,13 +41,13 @@ to be read out during the session.
 
 ```bash
 mvn install -DskipTests
-mvn test                 # 15 tests, all green
+mvn test                 # 17 tests, all green
 ```
 
 ```
 Tests run: 2, Failures: 0, Errors: 0 - in th.mfu.namingserver.NamingServerTests
 Tests run: 6, Failures: 0, Errors: 0 - in th.mfu.book.BookServiceTests
-Tests run: 7, Failures: 0, Errors: 0 - in th.mfu.transaction.TransactionServiceTests
+Tests run: 9, Failures: 0, Errors: 0 - in th.mfu.transaction.TransactionServiceTests
 BUILD SUCCESS
 ```
 
@@ -116,8 +116,11 @@ dto.setServedBy(Integer.parseInt(environment.getProperty("server.port")));
    microservices cost.
 
 2. **Nobody implements `BookClient`.** Ask where the HTTP code is. There is none:
-   Feign builds the class at startup from the annotations. Students who have just
-   met MapStruct will recognise the idea — you declare, the tool writes.
+   Feign builds the class at startup from the annotations. Put `BookMapper` next
+   to it on screen — the same repo, the same idea, and neither one has a body.
+   You declare, the tool writes. The only difference is what gets written: one
+   generates getters and setters at compile time, the other generates an HTTP
+   call at startup.
 
 3. **A name, not an address.** `"library-book-service"` is the other service's
    `spring.application.name`. In step 6 that same name points at two ports at

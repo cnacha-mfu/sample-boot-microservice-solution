@@ -35,11 +35,19 @@ public class BookController {
     @Autowired
     private Environment environment;
 
+    /**
+     * The Assembler, exactly as in the 3-tier sample. Nobody writes the class:
+     * MapStruct generated it during the build and componentModel = "spring" made
+     * it a bean, so it can be injected like any other.
+     */
+    @Autowired
+    private BookMapper bookMapper;
+
     @GetMapping("/books")
     public ResponseEntity<List<BookDTO>> listBooks() {
         List<BookDTO> books = new ArrayList<>();
         for (Book book : bookRepository.findAll()) {
-            books.add(toDto(book));
+            books.add(bookMapper.toDto(book, thisPort()));
         }
         return new ResponseEntity<>(books, HttpStatus.OK);
     }
@@ -54,32 +62,19 @@ public class BookController {
         if (!book.isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<>(toDto(book.get()), HttpStatus.OK);
+        return new ResponseEntity<>(bookMapper.toDto(book.get(), thisPort()), HttpStatus.OK);
     }
 
     /**
-     * Entity in, DTO out. Written by hand: you already know how to let MapStruct
-     * do this, and today is not about that.
+     * Step 6. The port of THIS copy of the service.
+     * <p>
+     * The load balancer works without this - but you cannot SEE it working, and a
+     * lesson you cannot see is a lesson nobody believes. Run two copies of this
+     * service and every answer will name the one that did the work.
+     * <p>
+     * Real code would not put an internal port on the wire.
      */
-    private BookDTO toDto(Book book) {
-        BookDTO dto = new BookDTO();
-        dto.setId(book.getId());
-        dto.setTitle(book.getTitle());
-        dto.setAuthor(book.getAuthor());
-        dto.setYear(book.getYear());
-
-        /*
-         * Step 6. Stamp the answer with the port of THIS copy.
-         *
-         * The load balancer works without this line - but you cannot SEE it
-         * working, and a lesson you cannot see is a lesson nobody believes. Run
-         * two copies of this service and every answer will name the one that did
-         * the work.
-         *
-         * Real code would not put an internal port on the wire.
-         */
-        dto.setServedBy(Integer.parseInt(environment.getProperty("server.port")));
-
-        return dto;
+    private int thisPort() {
+        return Integer.parseInt(environment.getProperty("server.port"));
     }
 }
