@@ -63,6 +63,23 @@ mvn -pl library-transaction-service  spring-boot:run    # 8100
 mvn -pl library-book-service spring-boot:run -Dspring-boot.run.arguments=--server.port=8091   # step 6
 ```
 
+**On Windows, in PowerShell, put quotes round the last one.** Like this:
+
+```powershell
+mvn -pl library-book-service spring-boot:run "-Dspring-boot.run.arguments=--server.port=8091"
+```
+
+Without the quotes, PowerShell breaks the argument in two at the dot. Maven then
+reads the second half as a goal and stops:
+
+```
+[ERROR] Unknown lifecycle phase ".run.arguments=--server.port=8091".
+```
+
+Nothing is wrong with the command. Only the shell differs. Git Bash, macOS and
+Linux pass the line through unchanged, so the unquoted form works there. The
+quoted form works in every shell, so use it if you are unsure.
+
 Then import `postman/library-microservice.postman_collection.json` and work down
 the list. Post the borrow request repeatedly and watch `servedBy` alternate.
 

@@ -19,8 +19,15 @@ public class TransactionDTO {
     /** Filled in from the answer of library-book-service. */
     private String bookTitle;
 
-    /** Which copy of library-book-service answered. See step 6. */
-    private int servedBy;
+    /**
+     * Which copy of library-book-service answered. See step 6.
+     * <p>
+     * Integer, not int, on purpose. GET /api/transactions never calls
+     * book-service, so nothing served those rows. An int would print 0 there,
+     * which reads like a port number and is not one. Integer prints null, which
+     * is the truth.
+     */
+    private Integer servedBy;
 
     public Long getId() {
         return id;
@@ -62,11 +69,11 @@ public class TransactionDTO {
         this.bookTitle = bookTitle;
     }
 
-    public int getServedBy() {
+    public Integer getServedBy() {
         return servedBy;
     }
 
-    public void setServedBy(int servedBy) {
+    public void setServedBy(Integer servedBy) {
         this.servedBy = servedBy;
     }
 }
