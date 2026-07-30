@@ -1,3 +1,15 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    // "automatic", not "interactive". The poms bring in MapStruct as an
+    // annotation processor. With "interactive" the Java extension waits for you
+    // to click a prompt before it re-reads them - and until you do, it compiles
+    // the stale generated mapper and writes a broken class into target/classes.
+    //
+    // The symptom is a startup failure that makes no sense:
+    //   Field bookMapper in th.mfu.book.BookController required a bean of type
+    //   'th.mfu.book.BookMapper' that could not be found.
+    //
+    // "mvn clean" does not fix it, because the extension writes the broken class
+    // straight back. If it happens anyway, run the command
+    // "Java: Clean Java Language Server Workspace" and reload.
+    "java.configuration.updateBuildConfiguration": "automatic"
 }
