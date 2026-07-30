@@ -1,0 +1,337 @@
+{
+  "info": {
+    "name": "Library Microservice (MFU)",
+    "description": "Import this into Postman to try the two services by hand.\n\nStart the naming server first, then book-service, then transaction-service.\n\nThe requests are in the order of the steps in TODO.md. Each one says which step makes it work.\n\nThe three addresses are collection variables, so you can change a port in one place: bookService, transactionService, namingServer.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "namingServer",
+      "value": "http://localhost:8761",
+      "type": "string"
+    },
+    {
+      "key": "bookService",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "transactionService",
+      "value": "http://localhost:8100",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Naming server",
+      "description": "The list of running services.",
+      "item": [
+        {
+          "name": "Eureka dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{namingServer}}/",
+              "host": ["{{namingServer}}"],
+              "path": [""]
+            },
+            "description": "This is an HTML page, so it is easier to read in a browser: http://localhost:8761/\n\nAfter step 1 you should see LIBRARY-BOOK-SERVICE on it. After step 2, LIBRARY-TRANSACTION-SERVICE as well.\n\nEureka takes about 30 seconds to notice a new service. If the list looks wrong, wait and send again."
+          },
+          "response": []
+        },
+        {
+          "name": "Registered services (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{namingServer}}/eureka/apps",
+              "host": ["{{namingServer}}"],
+              "path": ["eureka", "apps"]
+            },
+            "description": "The same list as the dashboard, as JSON. Look for the \"instance\" entries and their port numbers. After step 6 you should see TWO instances of LIBRARY-BOOK-SERVICE here."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. book-service",
+      "description": "The service that owns the books. It never calls anybody.",
+      "item": [
+        {
+          "name": "List all books",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"answers 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"data.sql loaded 5 books\", function () {",
+                  "    pm.expect(pm.response.json().length).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{bookService}}/api/books",
+              "host": ["{{bookService}}"],
+              "path": ["api", "books"]
+            },
+            "description": "Works from the start. Nothing in this request needs the naming server."
+          },
+          "response": []
+        },
+        {
+          "name": "Get book 10002",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"answers 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"it is 1984\", function () {",
+                  "    pm.expect(pm.response.json().title).to.eql(\"1984\");",
+                  "});",
+                  "pm.test(\"step 6: servedBy says which copy answered\", function () {",
+                  "    pm.expect(pm.response.json().servedBy).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{bookService}}/api/books/10002",
+              "host": ["{{bookService}}"],
+              "path": ["api", "books", "10002"]
+            },
+            "description": "The request that transaction-service will make for you later, through Feign.\n\nBefore step 6, servedBy is 0. After step 6 it is the port of this copy."
+          },
+          "response": []
+        },
+        {
+          "name": "Get a book that does not exist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"answers 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{bookService}}/api/books/999999",
+              "host": ["{{bookService}}"],
+              "path": ["api", "books", "999999"]
+            },
+            "description": "404. Remember this one: in step 5 you will see what Feign does with it on the other side."
+          },
+          "response": []
+        },
+        {
+          "name": "Get book from the second copy (port 8081)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/books/10002",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "books", "10002"]
+            },
+            "description": "Step 6 only. Start a second copy of book-service on 8081:\n\n  mvn -pl library-book-service spring-boot:run -Dspring-boot.run.arguments=--server.port=8081\n\nThis request goes straight to that copy, so servedBy is always 8081. It proves the second copy is alive before you test the load balancer."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. transaction-service",
+      "description": "The service that has to ask book-service.",
+      "item": [
+        {
+          "name": "Record a borrow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"answers 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"step 4: the book title came from the other service\", function () {",
+                  "    pm.expect(pm.response.json().bookTitle).to.eql(\"1984\");",
+                  "});",
+                  "console.log(\"answered by book-service on port: \" + pm.response.json().servedBy);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"BORROW\",\n    \"bookId\": 10002,\n    \"borrowerName\": \"Alice Johnson\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{transactionService}}/api/transactions",
+              "host": ["{{transactionService}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "THE request of the whole sample.\n\nNotice what we send: a bookId and a name. Notice what comes back: a bookTitle we never sent. That title was fetched from library-book-service while this request was being handled.\n\nStep 6: send this again and again and watch servedBy change between 8080 and 8081. That is the load balancer.\n\nWatch the console of book-service at the same time - you will see the call arrive there."
+          },
+          "response": []
+        },
+        {
+          "name": "Record a borrow of a book that does not exist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"step 5: answers 400, not 500\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"BORROW\",\n    \"bookId\": 999999,\n    \"borrowerName\": \"Alice Johnson\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{transactionService}}/api/transactions",
+              "host": ["{{transactionService}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "book-service answers 404, and Feign throws that at us as an exception.\n\nBefore step 5 you get a 500 and a stack trace. After step 5 you get 400, which is the truth: the request was wrong."
+          },
+          "response": []
+        },
+        {
+          "name": "Record a borrow while book-service is STOPPED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"step 5: answers 503\", function () {",
+                  "    pm.response.to.have.status(503);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"BORROW\",\n    \"bookId\": 10002,\n    \"borrowerName\": \"Alice Johnson\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{transactionService}}/api/transactions",
+              "host": ["{{transactionService}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "Stop EVERY copy of book-service first, then send this.\n\nThe same body as the successful request, and now it cannot work. 503 means \"I cannot serve this right now\" - which is a different thing from \"your request was wrong\".\n\nThis is the request that shows the price of splitting an application: transaction-service is only as available as the services it depends on."
+          },
+          "response": []
+        },
+        {
+          "name": "List transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"answers 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{transactionService}}/api/transactions",
+              "host": ["{{transactionService}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "This one needs nobody's help: every field it returns is in our own database. So there is no bookTitle here - compare it with the answer to the POST above.\n\nThe list is empty again every time you restart the service: the database is in memory."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

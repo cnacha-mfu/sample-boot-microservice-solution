@@ -1,0 +1,21 @@
+name: Build
+
+# Runs the whole test suite, so that a change to the starting sample which breaks
+# this reference solution is caught here.
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: mvn test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+      - name: Run tests
+        run: mvn -B test --file pom.xml

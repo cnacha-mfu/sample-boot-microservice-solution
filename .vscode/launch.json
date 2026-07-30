@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "1. Naming server (8761)",
+            "request": "launch",
+            "mainClass": "th.mfu.namingserver.NamingServerApp",
+            "projectName": "naming-server"
+        },
+        {
+            "type": "java",
+            "name": "2. book-service (8080)",
+            "request": "launch",
+            "mainClass": "th.mfu.book.BookServiceApp",
+            "projectName": "library-book-service"
+        },
+        {
+            "type": "java",
+            "name": "3. transaction-service (8100)",
+            "request": "launch",
+            "mainClass": "th.mfu.transaction.TransactionServiceApp",
+            "projectName": "library-transaction-service"
+        },
+        {
+            "type": "java",
+            "name": "4. book-service, SECOND copy (8081) - step 6",
+            "request": "launch",
+            "mainClass": "th.mfu.book.BookServiceApp",
+            "projectName": "library-book-service",
+            "args": "--server.port=8081"
+        }
+    ]
+}
