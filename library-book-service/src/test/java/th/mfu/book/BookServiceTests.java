@@ -39,7 +39,7 @@ public class BookServiceTests {
     public void itHasANameAndAPort() {
         assertEquals("library-book-service",
                 environment.getProperty("spring.application.name"));
-        assertEquals("8080", environment.getProperty("server.port"));
+        assertEquals("8090", environment.getProperty("server.port"));
     }
 
     @Test
@@ -81,6 +81,6 @@ public class BookServiceTests {
         // Step 6. Without this the load balancer works, but you cannot see it.
         mockMvc.perform(get("/api/books/10002"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.servedBy").value(8080));
+                .andExpect(jsonPath("$.servedBy").value(8090));
     }
 }

@@ -16,8 +16,13 @@ directly:
 
 ```bash
 diff -r --exclude=.git --exclude=target --exclude=README.md --exclude=TODO.md \
+        --exclude=.github \
   sample-boot-microservice sample-boot-microservice-solution
 ```
+
+(`.github` is excluded because this repo has a build workflow and the starting
+sample has none — its tests are meant to fail until the steps are done, so a
+green tick there would mean nothing.)
 
 | File | Answers |
 | --- | --- |
@@ -53,9 +58,9 @@ To run the whole thing, in this order:
 
 ```bash
 mvn -pl naming-server                spring-boot:run    # 8761
-mvn -pl library-book-service         spring-boot:run    # 8080
+mvn -pl library-book-service         spring-boot:run    # 8090
 mvn -pl library-transaction-service  spring-boot:run    # 8100
-mvn -pl library-book-service spring-boot:run -Dspring-boot.run.arguments=--server.port=8081   # step 6
+mvn -pl library-book-service spring-boot:run -Dspring-boot.run.arguments=--server.port=8091   # step 6
 ```
 
 Then import `postman/library-microservice.postman_collection.json` and work down
@@ -130,11 +135,12 @@ dto.setServedBy(Integer.parseInt(environment.getProperty("server.port")));
 | What they do | What happens |
 | --- | --- |
 | Forget `@EnableFeignClients` | `No qualifying bean of type 'th.mfu.transaction.BookClient'` |
-| `@FeignClient(url = "http://localhost:8080")` | Works until step 6, then cannot load balance |
+| `@FeignClient(url = "http://localhost:8090")` | Works until step 6, then cannot load balance |
 | Reload the dashboard immediately | Empty list. Eureka needs ~30 seconds |
 | Start transaction-service before the naming server | Log full of connection errors until the server appears |
 | Catch `Exception` before `FeignException.NotFound` | Everything becomes 503 and the 400 case is unreachable |
 | Return the port of their *own* service in `servedBy` | It never changes, so the load balancer looks broken |
 | Run only one copy of book-service in step 6 | `servedBy` never changes |
+| Post immediately after starting the second copy | Still one port. The caller re-reads the naming server's list on a timer - the dashboard updates first |
 | Expect the transaction list to survive a restart | H2 is in memory. This is correct behaviour |
 | Edit the test files | The tests are the specification |

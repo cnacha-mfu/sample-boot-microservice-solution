@@ -33,7 +33,7 @@ import feign.Response;
  * Tests for transaction-service.
  * <p>
  * book-service is not running during a test, so the Feign client is replaced by
- * a fake one. The fake answers "book 10002 is called 1984, and port 8080
+ * a fake one. The fake answers "book 10002 is called 1984, and port 8090
  * answered".
  * <p>
  * This test class is complete. Do not change it.
@@ -61,7 +61,7 @@ public class TransactionServiceTests {
         book.setTitle("1984");
         book.setAuthor("George Orwell");
         book.setYear(1949);
-        book.setServedBy(8080);
+        book.setServedBy(8090);
         return book;
     }
 
@@ -131,7 +131,7 @@ public class TransactionServiceTests {
                 // these two are not in our database: they came back from
                 // library-book-service
                 .andExpect(jsonPath("$.bookTitle").value("1984"))
-                .andExpect(jsonPath("$.servedBy").value(8080));
+                .andExpect(jsonPath("$.servedBy").value(8090));
     }
 
     @Test

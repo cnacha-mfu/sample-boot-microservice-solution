@@ -10,7 +10,7 @@
         },
         {
             "type": "java",
-            "name": "2. book-service (8080)",
+            "name": "2. book-service (8090)",
             "request": "launch",
             "mainClass": "th.mfu.book.BookServiceApp",
             "projectName": "library-book-service"
@@ -24,11 +24,11 @@
         },
         {
             "type": "java",
-            "name": "4. book-service, SECOND copy (8081) - step 6",
+            "name": "4. book-service, SECOND copy (8091) - step 6",
             "request": "launch",
             "mainClass": "th.mfu.book.BookServiceApp",
             "projectName": "library-book-service",
-            "args": "--server.port=8081"
+            "args": "--server.port=8091"
         }
     ]
 }

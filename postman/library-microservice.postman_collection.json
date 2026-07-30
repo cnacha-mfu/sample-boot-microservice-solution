@@ -12,7 +12,7 @@
     },
     {
       "key": "bookService",
-      "value": "http://localhost:8080",
+      "value": "http://localhost:8090",
       "type": "string"
     },
     {
@@ -156,18 +156,18 @@
           "response": []
         },
         {
-          "name": "Get book from the second copy (port 8081)",
+          "name": "Get book from the second copy (port 8091)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8081/api/books/10002",
+              "raw": "http://localhost:8091/api/books/10002",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "8081",
+              "port": "8091",
               "path": ["api", "books", "10002"]
             },
-            "description": "Step 6 only. Start a second copy of book-service on 8081:\n\n  mvn -pl library-book-service spring-boot:run -Dspring-boot.run.arguments=--server.port=8081\n\nThis request goes straight to that copy, so servedBy is always 8081. It proves the second copy is alive before you test the load balancer."
+            "description": "Step 6 only. Start a second copy of book-service on 8091:\n\n  mvn -pl library-book-service spring-boot:run -Dspring-boot.run.arguments=--server.port=8091\n\nThis request goes straight to that copy, so servedBy is always 8091. It proves the second copy is alive before you test the load balancer."
           },
           "response": []
         }
@@ -218,7 +218,7 @@
               "host": ["{{transactionService}}"],
               "path": ["api", "transactions"]
             },
-            "description": "THE request of the whole sample.\n\nNotice what we send: a bookId and a name. Notice what comes back: a bookTitle we never sent. That title was fetched from library-book-service while this request was being handled.\n\nStep 6: send this again and again and watch servedBy change between 8080 and 8081. That is the load balancer.\n\nWatch the console of book-service at the same time - you will see the call arrive there."
+            "description": "THE request of the whole sample.\n\nNotice what we send: a bookId and a name. Notice what comes back: a bookTitle we never sent. That title was fetched from library-book-service while this request was being handled.\n\nStep 6: send this again and again and watch servedBy change between 8090 and 8091. That is the load balancer.\n\nWatch the console of book-service at the same time - you will see the call arrive there."
           },
           "response": []
         },
@@ -327,7 +327,7 @@
               "host": ["{{transactionService}}"],
               "path": ["api", "transactions"]
             },
-            "description": "This one needs nobody's help: every field it returns is in our own database. So there is no bookTitle here - compare it with the answer to the POST above.\n\nThe list is empty again every time you restart the service: the database is in memory."
+            "description": "This one needs nobody's help: every field it returns is in our own database. So bookTitle comes back null and servedBy comes back 0 - compare that with the answer to the POST above, where both were filled in from the other service.\n\nThe list is empty again every time you restart the service: the database is in memory."
           },
           "response": []
         }
